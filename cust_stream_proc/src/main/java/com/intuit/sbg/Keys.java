@@ -22,13 +22,18 @@ public class Keys {
 
 
     //Customer Graph bolt
-    public static final String CUSTDATA_BOLT_ID = "custdata.bolt.id";
-    public static final String CUSTDATA_BOLT_COUNT = "custdata.bolt.count";
-    public static final String CUST_GRAPH_API_URL = "some url";
+    public static final String CUSTGRAPHNEO4J_BOLT_ID = "custgraphneo4j.bolt.id";
+    public static final String CUSTGRAPHNEO4J_BOLT_COUNT = "custgraphneo4j.bolt.count";
+    public static final String CUSTGRAPHNEO4J_BOLT_URL = "custgraphneo4j.url";
 
-    //Other Data bolt
-    public static final String OTHER_DATA_BOLT_ID = "otherdata.bolt.id";
-    public static final String OTHERDATA_BOLT_COUNT = "otherdata.bolt.count";
+    //Error bolt
+    public static final String ERROR_BOLT_ID = "error.bolt.id";
+    public static final String ERROR_BOLT_COUNT = "error.bolt.count";
+
+    //Data Normalization bolt
+    public static final String DATANORMALIZE_BOLT_ID = "datanormalize.bolt.id";
+    public static final String DATANORMALIZE_BOLT_COUNT = "datanormalize.bolt.count";
+
 
 
 }

@@ -6,6 +6,7 @@ package com.intuit.sbg.bolts;
 
 
 import com.intuit.sbg.Topology;
+import com.intuit.sbg.Utils;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -26,17 +27,23 @@ public class SinkTypeBolt extends BaseRichBolt {
 
     public void execute(Tuple tuple) {
         String value = tuple.getString(0);
-        System.out.println("Received in SinkType bolt : " + value);
-        String[] split = value.split(",");
 
-        if (split.length == 5) {
-            collector.emit(Topology.CUST_GRAPH_STREAM, new Values("cust-data", value));
-            System.out.println("Emitted : " + value);
-        } else {
-            collector.emit(Topology.OTHER_DATA_STREAM, new Values("other-data", value));
-            System.out.println("Emitted : " + value);
+        String[] split = value.split(",");
+        try {
+            if (split.length == 5) {
+                collector.emit(Topology.DATANORMALIZE_STREAM, new Values("cust-data", value));
+            } else {
+                collector.emit(Topology.ERROR_STREAM, new Values("error-data", "DATA: " + value));
+            }
+            collector.ack(tuple);
+            Utils.writeToLocalLog("SinkTypeBolt", "Emitted -> " + value);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Utils.writeToLocalLog("SinkTypeBolt", "Exception -> " + e.getMessage() + ", " + value);
+            collector.fail(tuple);
         }
-        collector.ack(tuple);
+
+
     }
 
 
@@ -46,8 +53,9 @@ public class SinkTypeBolt extends BaseRichBolt {
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declareStream(Topology.CUST_GRAPH_STREAM, new Fields("sinkType", "content"));
-        declarer.declareStream(Topology.OTHER_DATA_STREAM, new Fields("sinkType", "content"));
+        declarer.declareStream(Topology.DATANORMALIZE_STREAM, new Fields("sinkType", "content"));
+        declarer.declareStream(Topology.ERROR_STREAM, new Fields("sinkType", "content"));
+
     }
 
 }

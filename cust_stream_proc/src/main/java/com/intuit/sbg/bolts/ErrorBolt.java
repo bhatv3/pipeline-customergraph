@@ -4,6 +4,7 @@ package com.intuit.sbg.bolts;
  * Created by vikasbhat on 2/25/18.
  */
 
+import com.intuit.sbg.Utils;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -13,11 +14,11 @@ import org.apache.storm.tuple.Tuple;
 import java.util.Map;
 
 
-public class OtherDataBolt extends BaseRichBolt {
+public class ErrorBolt extends BaseRichBolt {
     private static final long serialVersionUID = 1L;
     private OutputCollector collector;
 
-    protected OtherDataBolt() {
+    protected ErrorBolt() {
 
     }
 
@@ -30,12 +31,11 @@ public class OtherDataBolt extends BaseRichBolt {
 
         try {
             String content = (String) input.getValueByField("content");
-            System.out.printf("OtherDataBolt -> Non-Customer Data Received: " + content);
-            collector.ack(input);
+            Utils.write("/tmp/cust_stream_proc.error","ErrorBolt",content);
         } catch (Exception e) {
             e.printStackTrace();
-            collector.fail(input);
         }
+        collector.ack(input);
     }
 
 

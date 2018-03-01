@@ -21,12 +21,16 @@ public class BoltBuilder {
         return new SinkTypeBolt();
     }
 
-    public CustDataBolt buildCustDataBolt() {
-        String custGraphApiUrl = configs.getProperty(Keys.CUST_GRAPH_API_URL);
-        return new CustDataBolt(custGraphApiUrl);
+    public CustGraphNeo4JBolt buildCustDataBolt() {
+        String custGraphApiUrl = configs.getProperty(Keys.CUSTGRAPHNEO4J_BOLT_URL);
+        return new CustGraphNeo4JBolt(custGraphApiUrl);
     }
 
-    public OtherDataBolt buildOtherDataBolt() {
-        return new OtherDataBolt();
+    public ErrorBolt buildErrorDataBolt() {
+        return new ErrorBolt();
+    }
+
+    public DataNormalizeBolt buildDataNormalizeBolt() {
+        return new DataNormalizeBolt();
     }
 }

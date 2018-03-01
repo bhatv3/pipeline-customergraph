@@ -4,10 +4,7 @@ package com.intuit.sbg;
  * Created by vikasbhat on 2/25/18.
  */
 
-import com.intuit.sbg.bolts.BoltBuilder;
-import com.intuit.sbg.bolts.CustDataBolt;
-import com.intuit.sbg.bolts.OtherDataBolt;
-import com.intuit.sbg.bolts.SinkTypeBolt;
+import com.intuit.sbg.bolts.*;
 import com.intuit.sbg.spouts.SpoutBuilder;
 import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
@@ -23,8 +20,10 @@ import java.util.Properties;
  */
 public class Topology {
 
-    public static final String OTHER_DATA_STREAM = "otherdata-stream";
+    public static final String ERROR_STREAM = "error-stream";
     public static final String CUST_GRAPH_STREAM = "custgraph-stream";
+    public static final String DATANORMALIZE_STREAM = "datanormalize-stream";
+
     public Properties configs;
     public BoltBuilder boltBuilder;
     public SpoutBuilder spoutBuilder;
@@ -61,9 +60,9 @@ public class Topology {
         KafkaSpout kafkaSpout = spoutBuilder.buildKafkaSpout();
         SinkTypeBolt sinkTypeBolt = boltBuilder.buildSinkTypeBolt();
 
-        CustDataBolt custDataBolt = boltBuilder.buildCustDataBolt();
-        OtherDataBolt otherDataBolt = boltBuilder.buildOtherDataBolt();
-
+        CustGraphNeo4JBolt custGraphNeo4JBolt = boltBuilder.buildCustDataBolt();
+        ErrorBolt errorBolt = boltBuilder.buildErrorDataBolt();
+        DataNormalizeBolt dataNormalizeBolt = boltBuilder.buildDataNormalizeBolt();
 
         //set the kafkaSpout to topology
         //parallelism-hint for kafkaSpout - defines number of executors/threads to be spawn per container
@@ -73,16 +72,24 @@ public class Topology {
 
         //set the sinktype bolt
         int sinkBoltCount = Integer.parseInt(configs.getProperty(Keys.SINK_BOLT_COUNT));
-        builder.setBolt(configs.getProperty(Keys.SINK_TYPE_BOLT_ID), sinkTypeBolt, sinkBoltCount).shuffleGrouping(configs.getProperty(Keys.KAFKA_SPOUT_ID));
-
+        builder.setBolt(configs.getProperty(Keys.SINK_TYPE_BOLT_ID), sinkTypeBolt, sinkBoltCount).
+                shuffleGrouping(configs.getProperty(Keys.KAFKA_SPOUT_ID));
 
         //set the custdata bolt
-        int custdataBoltCount = Integer.parseInt(configs.getProperty(Keys.CUSTDATA_BOLT_COUNT));
-        builder.setBolt(configs.getProperty(Keys.CUSTDATA_BOLT_ID), custDataBolt, custdataBoltCount).shuffleGrouping(configs.getProperty(Keys.SINK_TYPE_BOLT_ID), CUST_GRAPH_STREAM);
+        int dataNormalizeBoltCount = Integer.parseInt(configs.getProperty(Keys.DATANORMALIZE_BOLT_COUNT));
+        builder.setBolt(configs.getProperty(Keys.DATANORMALIZE_BOLT_ID), dataNormalizeBolt, dataNormalizeBoltCount).
+                shuffleGrouping(configs.getProperty(Keys.SINK_TYPE_BOLT_ID), DATANORMALIZE_STREAM);
 
-        //set the other data bolt
-        int otherDataBoltCount = Integer.parseInt(configs.getProperty(Keys.OTHERDATA_BOLT_COUNT));
-        builder.setBolt(configs.getProperty(Keys.OTHER_DATA_BOLT_ID), otherDataBolt, otherDataBoltCount).shuffleGrouping(configs.getProperty(Keys.SINK_TYPE_BOLT_ID), OTHER_DATA_STREAM);
+        //set the custdata bolt
+        int custdataBoltCount = Integer.parseInt(configs.getProperty(Keys.CUSTGRAPHNEO4J_BOLT_COUNT));
+        builder.setBolt(configs.getProperty(Keys.CUSTGRAPHNEO4J_BOLT_ID), custGraphNeo4JBolt, custdataBoltCount).
+                shuffleGrouping(configs.getProperty(Keys.DATANORMALIZE_BOLT_ID), CUST_GRAPH_STREAM);
+
+        //set the error bolt
+        int errorBoltCount = Integer.parseInt(configs.getProperty(Keys.ERROR_BOLT_COUNT));
+        builder.setBolt(configs.getProperty(Keys.ERROR_BOLT_ID), errorBolt, errorBoltCount).
+                shuffleGrouping(configs.getProperty(Keys.SINK_TYPE_BOLT_ID), ERROR_STREAM).
+                shuffleGrouping(configs.getProperty(Keys.CUSTGRAPHNEO4J_BOLT_ID), ERROR_STREAM);
 
 
         Config conf = new Config();
