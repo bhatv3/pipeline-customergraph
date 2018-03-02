@@ -21,7 +21,10 @@ import org.neo4j.ogm.config.Configuration;
 import org.neo4j.ogm.session.Session;
 import org.neo4j.ogm.session.SessionFactory;
 
+import java.util.Iterator;
 import java.util.Map;
+
+import static org.neo4j.ogm.session.Utils.map;
 
 
 public class CustGraphNeo4JBolt extends BaseRichBolt {
@@ -55,8 +58,8 @@ public class CustGraphNeo4JBolt extends BaseRichBolt {
 
             customer = buildCustomer(input);
             session.save(customer);
-
-            Utils.writeToLocalLog("CustGraphNeo4JBolt", "Added to graph -> " + customer.getFullName());
+            createSameAsRelationship(session, customer);
+            Utils.writeToLocalLog("CustGraphNeo4JBolt", "Added to graph " + customer.getFullName());
             collector.ack(input);
         } catch (Exception e) {
             e.printStackTrace();
@@ -64,6 +67,44 @@ public class CustGraphNeo4JBolt extends BaseRichBolt {
                 collector.emit(Topology.ERROR_STREAM, new Values("error-data", "SYSTEM: Error while adding customer to graph: " + customer.getFullName()));
             }
             collector.fail(input);
+        }
+    }
+
+    private void createSameAsRelationship(Session session, Customer customer) {
+        try {
+            Customer incoming = session.queryForObject(Customer.class,
+                    "match(c:Customer{fullName:{fullName}})return c limit 1",
+                    map("fullName", customer.getFullName()));
+
+            Iterable<Customer> customersSharingPhone = session.query(Customer.class,
+                    "match(p{number:{phonenum}})<-[:HAS_PHONE]-(c) return c",
+                    map("phonenum", customer.getPhone().getNumber()));
+
+            Iterable<Customer> customersSharingEmail = session.query(Customer.class,
+                    "match(e{id:{emailid}})<-[:HAS_EMAIL]-(c) return c",
+                    map("emailid", customer.getEmail().getId()));
+
+            Iterator<Customer> pIterator = customersSharingPhone.iterator();
+            Iterator<Customer> eIterator = customersSharingEmail.iterator();
+            addToSame(pIterator, incoming, incoming.getSame().size()+1);
+            addToSame(eIterator, incoming, incoming.getSame().size()+1);
+            session.save(incoming);
+            Utils.writeToLocalLog("CustGraphNeo4JBolt", "Completed SAME_AS relationship creation  " + customer.getFullName());
+        } catch (Exception e) {
+            e.printStackTrace();
+            collector.emit(Topology.ERROR_STREAM, new Values("error-data", "SYSTEM: Error while creating SAME_AS relationships: " + customer.getFullName()));
+
+        }
+    }
+
+    private void addToSame(Iterator<Customer> i, Customer incoming, int n) {
+        while (i.hasNext()) {
+            Customer next = i.next();
+            if(next.getId()!=incoming.getId()){
+                incoming.addToSame(next);
+                Utils.writeToLocalLog("CustGraphNeo4JBolt", "Created " + incoming.getFullName() + "--SAME_AS--" + next.getFullName());
+                if (incoming.getSame().size() == n) break;
+            }
         }
     }
 

@@ -2,6 +2,9 @@ package com.intuit.sbg.domain;
 
 import org.neo4j.ogm.annotation.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Created by vikasbhat on 2/27/18.
  */
@@ -25,7 +28,11 @@ public class Customer {
     @Relationship(type="HAS_EMAIL", direction = Relationship.OUTGOING)
     private Email email;
 
+    @Relationship(type="SAME_AS", direction = Relationship.OUTGOING)
+    private Set<Customer> same;
+
     public Customer() {
+        this.same = new HashSet<Customer>();
     }
 
     public Customer(String fullName, Address address, Phone phone, Email email) {
@@ -33,6 +40,7 @@ public class Customer {
         this.address = address;
         this.phone = phone;
         this.email = email;
+        this.same = new HashSet<Customer>();
     }
 
     public Long getId() {
@@ -75,5 +83,31 @@ public class Customer {
         this.email = email;
     }
 
+    public Set<Customer> getSame() {
+        return same;
+    }
 
+    public void setSame(Set<Customer> same) {
+        this.same = same;
+    }
+
+    public void addToSame(Customer c1){
+        this.same.add(c1);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Customer customer = (Customer) o;
+
+        return id.equals(customer.id);
+
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
 }
