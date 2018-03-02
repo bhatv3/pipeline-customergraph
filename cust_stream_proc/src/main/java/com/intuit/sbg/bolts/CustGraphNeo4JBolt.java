@@ -76,18 +76,23 @@ public class CustGraphNeo4JBolt extends BaseRichBolt {
                     "match(c:Customer{fullName:{fullName}})return c limit 1",
                     map("fullName", customer.getFullName()));
 
-            Iterable<Customer> customersSharingPhone = session.query(Customer.class,
-                    "match(p{number:{phonenum}})<-[:HAS_PHONE]-(c) return c",
-                    map("phonenum", customer.getPhone().getNumber()));
+            if(null != customer.getPhone()){
+                Iterable<Customer> customersSharingPhone = session.query(Customer.class,
+                        "match(p{number:{phonenum}})<-[:HAS_PHONE]-(c) return c",
+                        map("phonenum", customer.getPhone().getNumber()));
+                Iterator<Customer> pIterator = customersSharingPhone.iterator();
+                addToSame(pIterator, incoming, incoming.getSame().size()+1);
+            }
 
-            Iterable<Customer> customersSharingEmail = session.query(Customer.class,
-                    "match(e{id:{emailid}})<-[:HAS_EMAIL]-(c) return c",
-                    map("emailid", customer.getEmail().getId()));
+            if(null != customer.getEmail()){
+                Iterable<Customer> customersSharingEmail = session.query(Customer.class,
+                        "match(e{id:{emailid}})<-[:HAS_EMAIL]-(c) return c",
+                        map("emailid", customer.getEmail().getId()));
+                Iterator<Customer> eIterator = customersSharingEmail.iterator();
+                addToSame(eIterator, incoming, incoming.getSame().size()+1);
+            }
+            
 
-            Iterator<Customer> pIterator = customersSharingPhone.iterator();
-            Iterator<Customer> eIterator = customersSharingEmail.iterator();
-            addToSame(pIterator, incoming, incoming.getSame().size()+1);
-            addToSame(eIterator, incoming, incoming.getSame().size()+1);
             session.save(incoming);
             Utils.writeToLocalLog("CustGraphNeo4JBolt", "Completed SAME_AS relationship creation  " + customer.getFullName());
         } catch (Exception e) {

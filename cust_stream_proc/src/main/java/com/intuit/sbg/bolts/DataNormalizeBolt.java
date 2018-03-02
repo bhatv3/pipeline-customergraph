@@ -59,7 +59,7 @@ public class DataNormalizeBolt extends BaseRichBolt {
     }
 
     private String normalizePhoneNumber(String phoneNumber) {
-        if (phoneNumber == null || phoneNumber.equals("")) return "";
+        if (phoneNumber == null || phoneNumber.trim().equals("")) return "";
 
         String digits = phoneNumber.replaceAll("[^0-9]", "");
         if (digits.length() == 10) {
